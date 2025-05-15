@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Video } from '@/types';
-import { getVideos, deleteVideo } from '@/data/mock';
+// import { getVideos, deleteVideo } from '@/data/mock'; // Removed imports
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -31,6 +31,14 @@ import { ArrowLeft, Edit, Trash2, PlusCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Helper component for Video icon (local to this file as it was previously)
+const VideoIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M4 6.42857C4 5.08741 5.08741 4 6.42857 4H17.5714C18.9126 4 20 5.08741 20 6.42857V17.5714C20 18.9126 18.9126 20 17.5714 20H6.42857C5.08741 20 4 18.9126 4 17.5714V6.42857ZM6 6V18H18V6H6ZM9.5 8L15.5 12L9.5 16V8Z" />
+  </svg>
+);
+
+
 export default function ManageVideosPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,13 +50,19 @@ export default function ManageVideosPage() {
     async function fetchVideos() {
       setIsLoading(true);
       try {
-        const fetchedVideos = await getVideos();
-        setVideos(fetchedVideos);
+        // const fetchedVideos = await getVideos(); // Backend call will replace this
+        // setVideos(fetchedVideos);
+        setVideos([]); // Set to empty array as backend is not ready
+        toast({
+          title: "Backend Pending",
+          description: "Video list will populate once backend is connected.",
+          variant: "default"
+        })
       } catch (error) {
-        console.error("Failed to fetch videos:", error);
+        console.error("Failed to fetch videos (backend pending):", error);
         toast({
           title: "Error",
-          description: "Could not load videos. Please try again.",
+          description: "Could not load videos. Please ensure backend is running.",
           variant: "destructive",
         });
       } finally {
@@ -61,24 +75,28 @@ export default function ManageVideosPage() {
   const handleDeleteVideo = async (videoId: string) => {
     setIsDeleting(videoId);
     try {
-      const success = await deleteVideo(videoId);
+      // const success = await deleteVideo(videoId); // Backend call will replace this
+      // Simulate backend call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const success = true; // Assume success for now
+
       if (success) {
         setVideos(prevVideos => prevVideos.filter(video => video.id !== videoId));
         toast({
-          title: "Video Deleted",
-          description: "The video has been successfully removed.",
+          title: "Video Deleted (Mock)",
+          description: "The video has been removed from the list (backend integration pending).",
         });
       } else {
         toast({
-          title: "Error",
-          description: "Could not delete the video. It might have already been removed.",
+          title: "Error (Mock)",
+          description: "Could not delete the video.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Failed to delete video:", error);
+      console.error("Failed to delete video (mock):", error);
       toast({
-        title: "Error",
+        title: "Error (Mock)",
         description: "An unexpected error occurred while deleting the video.",
         variant: "destructive",
       });
@@ -131,15 +149,15 @@ export default function ManageVideosPage() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Videos</CardTitle>
-          <CardDescription>View, edit, or delete existing videos from your catalog.</CardDescription>
+          <CardDescription>View, edit, or delete existing videos from your catalog. (Backend integration pending)</CardDescription>
         </CardHeader>
         <CardContent>
           {videos.length === 0 && !isLoading ? (
             <div className="text-center py-10">
-              <Video className="mx-auto h-12 w-12 text-muted-foreground" />
+              <VideoIcon className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-2 text-lg font-medium">No Videos Found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Get started by adding a new video.
+                Add videos using the "Add New Video" button or connect to a backend to see your catalog.
               </p>
               <Button asChild className="mt-4">
                 <Link href="/admin/upload"><PlusCircle className="mr-2 h-4 w-4" />Add Video</Link>
@@ -178,7 +196,7 @@ export default function ManageVideosPage() {
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
                               This action cannot be undone. This will permanently delete the
-                              video "{video.title}".
+                              video "{video.title}" (mock deletion).
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -206,9 +224,7 @@ export default function ManageVideosPage() {
   );
 }
 
-// Helper component for Video icon
-const Video = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M4 6.42857C4 5.08741 5.08741 4 6.42857 4H17.5714C18.9126 4 20 5.08741 20 6.42857V17.5714C20 18.9126 18.9126 20 17.5714 20H6.42857C5.08741 20 4 18.9126 4 17.5714V6.42857ZM6 6V18H18V6H6ZM9.5 8L15.5 12L9.5 16V8Z" />
-  </svg>
-);
+// Note: The Video icon component definition has been renamed to VideoIcon to avoid conflict
+// if a 'Video' type/component is imported from elsewhere in the future.
+// It's also good practice for components to have PascalCase names.
+

@@ -15,7 +15,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { BarChart, CartesianGrid, XAxis, YAxis, Bar, LineChart, Line, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { getVideos, getCategories } from '@/data/mock'; // For mock data counts
+// Removed: import { getVideos, getCategories } from '@/data/mock'; 
 import type { Video as VideoType, VideoCategory } from '@/types';
 
 // Mock data for charts
@@ -53,19 +53,17 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     async function fetchDataCounts() {
-      setIsLoading(true); // Keep this if you want to show loading for these counts specifically
+      setIsLoading(true);
       try {
-        const [videos, categories] = await Promise.all([
-          getVideos(),
-          getCategories()
-        ]);
-        setTotalVideos(videos.length);
-        setTotalCategories(categories.length);
+        // Data fetching from mock.ts was removed.
+        // Set counts to 0 or placeholder until backend is ready.
+        setTotalVideos(0);
+        setTotalCategories(0);
       } catch (error) {
         console.error("Failed to fetch data counts for analytics:", error);
         // Handle error if needed, e.g., show a toast
       } finally {
-        setIsLoading(false); // Set loading to false after all data is fetched
+        setIsLoading(false); 
       }
     }
     fetchDataCounts();
@@ -104,7 +102,7 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold flex items-center gap-2">
             <BarChart3 className="h-8 w-8 text-primary" /> Platform Analytics
         </h1>
-        <p className="text-muted-foreground">Overview of your video streaming platform's performance.</p>
+        <p className="text-muted-foreground">Overview of your video streaming platform's performance. (Backend integration pending for live data)</p>
       </div>
 
       {/* Key Metrics */}
@@ -116,7 +114,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalVideos}</div>
-            <p className="text-xs text-muted-foreground">Currently in catalog</p>
+            <p className="text-xs text-muted-foreground">Currently in catalog (pending backend)</p>
           </CardContent>
         </Card>
         <Card>
@@ -126,7 +124,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCategories}</div>
-            <p className="text-xs text-muted-foreground">Available genres</p>
+            <p className="text-xs text-muted-foreground">Available genres (pending backend)</p>
           </CardContent>
         </Card>
         <Card>
