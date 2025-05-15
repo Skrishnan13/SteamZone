@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning={true}>
       <body className={cn(geistSans.variable, geistMono.variable, "antialiased min-h-screen flex flex-col")}>
         <Navbar />
         <main className="flex-grow container mx-auto px-4 py-8">
