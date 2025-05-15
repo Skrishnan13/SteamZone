@@ -1,6 +1,13 @@
+
 import type { Video, VideoCategory, VideoComment } from '@/types';
 
-export const videoCategories: VideoCategory[] = [
+// Helper for deep copying objects.
+const deepCopy = <T>(obj: T): T => {
+  return JSON.parse(JSON.stringify(obj)); // Simple deep copy for plain objects
+};
+
+// --- Category Management ---
+const initialVideoCategories: VideoCategory[] = [
   { id: 'trending', name: 'Trending Now', description: 'What everyone is watching.' },
   { id: 'new-releases', name: 'New Releases', description: 'Freshly added movies and shows.' },
   { id: 'action', name: 'Action Movies', description: 'Adrenaline-pumping blockbusters.' },
@@ -10,6 +17,71 @@ export const videoCategories: VideoCategory[] = [
   { id: 'documentaries', name: 'Documentaries', description: 'Real stories, real impact.' },
 ];
 
+let videoCategoriesStore: VideoCategory[] = deepCopy(initialVideoCategories);
+
+export const getCategories = async (): Promise<VideoCategory[]> => {
+  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate network delay
+  return deepCopy(videoCategoriesStore);
+};
+
+export const getCategoryById = async (id: string): Promise<VideoCategory | undefined> => {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const category = videoCategoriesStore.find(c => c.id === id);
+  return category ? deepCopy(category) : undefined;
+};
+
+export const addCategory = async (categoryData: Omit<VideoCategory, 'id'>): Promise<VideoCategory> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const newCategory: VideoCategory = {
+    ...categoryData,
+    id: `cat-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  };
+  videoCategoriesStore.push(newCategory);
+  console.log("Added category:", newCategory);
+  return deepCopy(newCategory);
+};
+
+export const updateCategory = async (id: string, updatedData: Partial<Omit<VideoCategory, 'id'>>): Promise<VideoCategory | undefined> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const categoryIndex = videoCategoriesStore.findIndex(c => c.id === id);
+  if (categoryIndex === -1) {
+    return undefined;
+  }
+  videoCategoriesStore[categoryIndex] = {
+    ...videoCategoriesStore[categoryIndex],
+    ...updatedData,
+  };
+  // Also update category details in all videos using this category
+  videoStore = videoStore.map(video => ({
+    ...video,
+    categories: video.categories.map(cat => 
+      cat.id === id ? { ...cat, ...videoCategoriesStore[categoryIndex] } : cat
+    )
+  }));
+  console.log("Updated category:", videoCategoriesStore[categoryIndex]);
+  return deepCopy(videoCategoriesStore[categoryIndex]);
+};
+
+export const deleteCategory = async (id: string): Promise<boolean> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const initialLength = videoCategoriesStore.length;
+  videoCategoriesStore = videoCategoriesStore.filter(c => c.id !== id);
+  const success = videoCategoriesStore.length < initialLength;
+  if (success) {
+    // Remove this category from all videos
+    videoStore = videoStore.map(video => ({
+      ...video,
+      categories: video.categories.filter(cat => cat.id !== id),
+    }));
+    console.log("Deleted category with id:", id);
+  } else {
+    console.log("Failed to delete category with id:", id, "- not found.");
+  }
+  return success;
+};
+
+
+// --- Video Management ---
 const initialMockVideos: Video[] = [
   {
     id: 'cosmos-odyssey',
@@ -18,7 +90,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'Embark on a breathtaking voyage across galaxies, exploring cosmic wonders and the mysteries of deep space. "Cosmos Odyssey" combines stunning visuals with cutting-edge science to bring the universe to your screen.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'space galaxy',
-    categories: [videoCategories.find(c => c.id === 'trending')!, videoCategories.find(c => c.id === 'sci-fi')!, videoCategories.find(c => c.id === 'documentaries')!],
+    categories: [initialVideoCategories.find(c => c.id === 'trending')!, initialVideoCategories.find(c => c.id === 'sci-fi')!, initialVideoCategories.find(c => c.id === 'documentaries')!],
     genres: ['Sci-Fi', 'Documentary', 'Space'],
     duration: '1h 45m',
     releaseYear: 2023,
@@ -34,7 +106,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'A group of college students discovers that the local urban legends are not just stories. As they delve deeper, they find themselves hunted by a chilling reality they cannot escape.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'horror dark',
-    categories: [videoCategories.find(c => c.id === 'new-releases')!],
+    categories: [initialVideoCategories.find(c => c.id === 'new-releases')!],
     genres: ['Horror', 'Thriller', 'Mystery'],
     duration: '1h 32m',
     releaseYear: 2024,
@@ -49,7 +121,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'In the mystical land of Aetheria, an ancient prophecy reawakens, forcing a young sorceress and a disgraced knight to unite against a rising shadow that threatens to engulf their world.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'fantasy magic',
-    categories: [videoCategories.find(c => c.id === 'sci-fi')!],
+    categories: [initialVideoCategories.find(c => c.id === 'sci-fi')!],
     genres: ['Fantasy', 'Adventure', 'Action'],
     duration: '2h 15m',
     releaseYear: 2023,
@@ -64,7 +136,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'Follow the journey of three aspiring artists as they navigate the challenges and triumphs of pursuing their dreams in a bustling metropolis. A story of resilience, creativity, and the bonds that tie us.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'city people',
-    categories: [videoCategories.find(c => c.id === 'drama')!],
+    categories: [initialVideoCategories.find(c => c.id === 'drama')!],
     genres: ['Drama', 'Comedy', 'Romance'],
     duration: '1h 50m',
     releaseYear: 2022,
@@ -79,7 +151,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'Decades after a global AI takeover, a reclusive hacker stumbles upon a legendary piece of code rumored to be able to restore human control. Pursued by relentless AI enforcers, she must decide if humanity is worth saving.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'cyberpunk code',
-    categories: [videoCategories.find(c => c.id === 'action')!, videoCategories.find(c => c.id === 'sci-fi')!],
+    categories: [initialVideoCategories.find(c => c.id === 'action')!, initialVideoCategories.find(c => c.id === 'sci-fi')!],
     genres: ['Action', 'Sci-Fi', 'Thriller'],
     duration: '2h 5m',
     releaseYear: 2024,
@@ -94,7 +166,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'Get ready for an hour of non-stop laughter with "Laugh Riot Live." This comedy special brings together a lineup of hilarious comedians delivering their best material, recorded live in front of a roaring audience.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'comedy stage',
-    categories: [videoCategories.find(c => c.id === 'comedy')!],
+    categories: [initialVideoCategories.find(c => c.id === 'comedy')!],
     genres: ['Comedy', 'Stand-Up'],
     duration: '1h 2m',
     releaseYear: 2023,
@@ -109,7 +181,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'Travel the world from your kitchen with "Culinary Journeys." Each episode dives into the heart of a different culture, showcasing its unique ingredients, traditional recipes, and the stories behind the food.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'food travel',
-    categories: [videoCategories.find(c => c.id === 'documentaries')!],
+    categories: [initialVideoCategories.find(c => c.id === 'documentaries')!],
     genres: ['Documentary', 'Food', 'Travel'],
     duration: '8 episodes x 45m',
     releaseYear: 2023,
@@ -124,7 +196,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'Venture into the darkest depths of the ocean where bizarre creatures and undiscovered ecosystems thrive. "Deep Sea Mysteries" uses cutting-edge technology to reveal a world few have ever seen.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'ocean underwater',
-    categories: [videoCategories.find(c => c.id === 'documentaries')!, videoCategories.find(c => c.id === 'trending')!],
+    categories: [initialVideoCategories.find(c => c.id === 'documentaries')!, initialVideoCategories.find(c => c.id === 'trending')!],
     genres: ['Documentary', 'Nature', 'Science'],
     duration: '1h 30m',
     releaseYear: 2022,
@@ -139,7 +211,7 @@ const initialMockVideos: Video[] = [
     longDescription: 'A gripping docu-series that follows real forensic investigators as they piece together clues from the most complex crime scenes. Witness the power of science in the pursuit of justice.',
     thumbnailUrl: 'https://placehold.co/600x338.png',
     dataAiHint: 'crime investigation',
-    categories: [videoCategories.find(c => c.id === 'documentaries')!, videoCategories.find(c => c.id === 'new-releases')!],
+    categories: [initialVideoCategories.find(c => c.id === 'documentaries')!, initialVideoCategories.find(c => c.id === 'new-releases')!],
     genres: ['Documentary', 'True Crime', 'Science'],
     duration: '10 episodes x 50m',
     releaseYear: 2024,
@@ -147,88 +219,83 @@ const initialMockVideos: Video[] = [
     cast: ['Various real investigators'],
     director: 'Alex Johnson',
   },
-];
+].filter(video => video.categories.every(cat => cat !== undefined && cat !== null)); // Filter out videos with missing categories from initial setup
 
-// Helper for deep copying video objects.
-const deepCopyVideo = (video: Video): Video => {
-  return JSON.parse(JSON.stringify(video)); // Simple deep copy for plain objects
-};
 
-// In-memory store for videos. In a real app, this would be a database.
-let videoStore: Video[] = initialMockVideos.map(deepCopyVideo);
+let videoStore: Video[] = deepCopy(initialMockVideos);
 
 export const getVideos = async (category?: string): Promise<Video[]> => {
-  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 50));
   if (category) {
-    return videoStore.filter(v => v.categories.some(c => c.id === category)).map(deepCopyVideo);
+    return deepCopy(videoStore.filter(v => v.categories.some(c => c.id === category)));
   }
-  return videoStore.map(deepCopyVideo);
+  return deepCopy(videoStore);
 };
 
 export const getVideosByCategoryId = async (categoryId: string): Promise<Video[]> => {
   await new Promise(resolve => setTimeout(resolve, 50));
-  return videoStore.filter(video => video.categories.some(cat => cat.id === categoryId)).map(deepCopyVideo);
+  // Ensure videoCategoriesStore is used if needed here, or make sure categories on videos are complete objects
+  const allCategories = await getCategories(); // Fetch current categories
+  return deepCopy(videoStore.filter(video => 
+    video.categories.some(catOnVideo => catOnVideo.id === categoryId)
+  ));
 };
 
 export const getVideoById = async (id: string): Promise<Video | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 50));
   const video = videoStore.find(v => v.id === id);
-  return video ? deepCopyVideo(video) : undefined;
+  return video ? deepCopy(video) : undefined;
 };
 
 export const getFeaturedVideo = async (): Promise<Video | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 50));
   const video = videoStore.find(v => v.isFeatured);
-  return video ? deepCopyVideo(video) : undefined;
+  return video ? deepCopy(video) : undefined;
 };
 
-export const addVideo = async (videoData: Omit<Video, 'id'>): Promise<Video> => {
+const mapCategoryIdsToObjects = async (categoryIds: string[]): Promise<VideoCategory[]> => {
+  const allCategories = await getCategories();
+  return categoryIds.map(catId => {
+    const foundCategory = allCategories.find(c => c.id === catId);
+    if (!foundCategory) throw new Error(`Category with id ${catId} not found`);
+    return foundCategory;
+  }).filter(cat => cat !== null) as VideoCategory[];
+};
+
+export const addVideo = async (videoData: Omit<Video, 'id' | 'categories'> & { categories: string[] }): Promise<Video> => {
   await new Promise(resolve => setTimeout(resolve, 300));
+  const categoryObjects = await mapCategoryIdsToObjects(videoData.categories);
   const newVideo: Video = {
     ...videoData,
     id: `video-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    // Ensure categories are properly mapped if only IDs are passed
-    categories: videoData.categories.map(catIdOrObj => {
-        if (typeof catIdOrObj === 'string') {
-            const foundCategory = videoCategories.find(c => c.id === catIdOrObj);
-            if (!foundCategory) throw new Error(`Category with id ${catIdOrObj} not found`);
-            return foundCategory;
-        }
-        return catIdOrObj; // Assume it's already a VideoCategory object
-    })
+    categories: categoryObjects,
   };
-  videoStore.unshift(newVideo); // Add to the beginning of the array
+  videoStore.unshift(newVideo);
   console.log("Added video:", newVideo);
-  return deepCopyVideo(newVideo);
+  return deepCopy(newVideo);
 };
 
-export const updateVideo = async (id: string, updatedData: Partial<Omit<Video, 'id'>>): Promise<Video | undefined> => {
+export const updateVideo = async (id: string, updatedData: Partial<Omit<Video, 'id' | 'categories'> & { categories?: string[] }>): Promise<Video | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 300));
   const videoIndex = videoStore.findIndex(v => v.id === id);
   if (videoIndex === -1) {
     return undefined;
   }
-  // Ensure categories are properly mapped if only IDs are passed
-  let categoriesToUpdate = updatedData.categories;
-  if (categoriesToUpdate) {
-    categoriesToUpdate = categoriesToUpdate.map(catIdOrObj => {
-        if (typeof catIdOrObj === 'string') {
-            const foundCategory = videoCategories.find(c => c.id === catIdOrObj);
-            if (!foundCategory) throw new Error(`Category with id ${catIdOrObj} not found during update`);
-            return foundCategory;
-        }
-        return catIdOrObj;
-    });
+  
+  let categoryObjectsToUpdate: VideoCategory[] | undefined = undefined;
+  if (updatedData.categories) {
+    categoryObjectsToUpdate = await mapCategoryIdsToObjects(updatedData.categories);
   }
 
   videoStore[videoIndex] = { 
     ...videoStore[videoIndex], 
     ...updatedData,
-    categories: categoriesToUpdate || videoStore[videoIndex].categories // Use existing if not provided
+    categories: categoryObjectsToUpdate || videoStore[videoIndex].categories,
   };
   console.log("Updated video:", videoStore[videoIndex]);
-  return deepCopyVideo(videoStore[videoIndex]);
+  return deepCopy(videoStore[videoIndex]);
 };
+
 
 export const deleteVideo = async (id: string): Promise<boolean> => {
   await new Promise(resolve => setTimeout(resolve, 300));
@@ -250,13 +317,13 @@ export const getCommentsForVideo = async (videoId: string): Promise<VideoComment
   // For now, return static comments for any videoId, or empty if no match
   if (videoId === 'cosmos-odyssey' || videoId === 'urban-legends-return') { // Example
     return [
-      { id: 'c1', userId: 'user123', username: 'SpaceFan', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Absolutely stunning visuals! A must-watch.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), likes: 15 },
-      { id: 'c2', userId: 'user456', username: 'MovieBuff_99', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Great storytelling. Kept me on the edge of my seat.', createdAt: new Date(Date.now() - 1000 * 60 * 30), likes: 8,
+      { id: 'c1', userId: 'user123', username: 'SpaceFan', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Absolutely stunning visuals! A must-watch.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), likes: 15 },
+      { id: 'c2', userId: 'user456', username: 'MovieBuff_99', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Great storytelling. Kept me on the edge of my seat.', createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), likes: 8,
         replies: [
-           { id: 'c2_r1', userId: 'user789', username: 'ReplyGuy', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Totally agree!', createdAt: new Date(Date.now() - 1000 * 60 * 15), likes: 2 }
+           { id: 'c2_r1', userId: 'user789', username: 'ReplyGuy', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Totally agree!', createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), likes: 2 }
         ]
       },
-       { id: 'c3', userId: 'user789', username: 'CriticalThinker', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Could have explored more on topic X, but overall good.', createdAt: new Date(Date.now() - 1000 * 60 * 5), likes: 3 },
+       { id: 'c3', userId: 'user789', username: 'CriticalThinker', avatarUrl: 'https://placehold.co/40x40.png', comment: 'Could have explored more on topic X, but overall good.', createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), likes: 3 },
     ];
   }
   return [];
@@ -268,23 +335,46 @@ export const addCommentToVideo = async (videoId: string, commentText: string, us
     id: `comment-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     userId,
     username,
-    avatarUrl,
+    avatarUrl: avatarUrl || `https://placehold.co/40x40.png?text=${username.substring(0,2).toUpperCase()}`,
     comment: commentText,
-    createdAt: new Date(),
+    createdAt: new Date().toISOString(),
     likes: 0,
   };
   console.log(`New comment for video ${videoId}:`, newComment);
   return newComment;
 };
 
+let videoInteractions: Record<string, {likes: number, dislikes: number}> = {};
+
+export const getInteractionCounts = async (videoId: string): Promise<{likes: number, dislikes: number}> => {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    if (!videoInteractions[videoId]) {
+        // Initialize with random counts if not present
+        videoInteractions[videoId] = {
+            likes: Math.floor(Math.random() * 250) + 5,
+            dislikes: Math.floor(Math.random() * 50) + 1
+        };
+    }
+    return deepCopy(videoInteractions[videoId]);
+}
+
 export const addLikeToVideo = async (videoId: string, userId: string): Promise<{likes: number, dislikes: number}> => {
     await new Promise(resolve => setTimeout(resolve, 100));
-    console.log(`User ${userId} liked video ${videoId}`);
-    return { likes: Math.floor(Math.random() * 100) + 1, dislikes: Math.floor(Math.random() * 20) };
+    if (!videoInteractions[videoId]) {
+      await getInteractionCounts(videoId); // ensure initialized
+    }
+    // For mock, just increment. A real system would check if user already liked/disliked.
+    videoInteractions[videoId].likes++;
+    console.log(`User ${userId} liked video ${videoId}. New counts: ${videoInteractions[videoId].likes} likes, ${videoInteractions[videoId].dislikes} dislikes.`);
+    return deepCopy(videoInteractions[videoId]);
 };
 
 export const addDislikeToVideo = async (videoId: string, userId: string): Promise<{likes: number, dislikes: number}> => {
     await new Promise(resolve => setTimeout(resolve, 100));
-    console.log(`User ${userId} disliked video ${videoId}`);
-    return { likes: Math.floor(Math.random() * 100), dislikes: Math.floor(Math.random() * 20) + 1 };
+     if (!videoInteractions[videoId]) {
+      await getInteractionCounts(videoId); // ensure initialized
+    }
+    videoInteractions[videoId].dislikes++;
+    console.log(`User ${userId} disliked video ${videoId}. New counts: ${videoInteractions[videoId].likes} likes, ${videoInteractions[videoId].dislikes} dislikes.`);
+    return deepCopy(videoInteractions[videoId]);
 };

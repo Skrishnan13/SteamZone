@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Video, VideoCategory } from '@/types';
-import { getVideosByCategoryId, videoCategories, getFeaturedVideo } from '@/data/mock';
+import { getVideosByCategoryId, getCategories, getFeaturedVideo } from '@/data/mock'; // Updated import
 import { VideoCard } from '@/components/VideoCard';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, PlayCircle } from 'lucide-react';
@@ -55,6 +55,7 @@ const ScrollContainer: React.FC<{ children: React.ReactNode; categoryId: string 
 
 
 export default function HomePage() {
+  const [allCategories, setAllCategories] = useState<VideoCategory[]>([]);
   const [categorizedVideos, setCategorizedVideos] = useState<Map<string, Video[]>>(new Map());
   const [featuredVideo, setFeaturedVideo] = useState<Video | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,11 +64,15 @@ export default function HomePage() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const featured = await getFeaturedVideo();
+        const [featured, fetchedCategories] = await Promise.all([
+            getFeaturedVideo(),
+            getCategories()
+        ]);
         setFeaturedVideo(featured || null);
+        setAllCategories(fetchedCategories);
 
         const videosMap = new Map<string, Video[]>();
-        for (const category of videoCategories) {
+        for (const category of fetchedCategories) {
           const videos = await getVideosByCategoryId(category.id);
           if (videos.length > 0) {
             videosMap.set(category.id, videos);
@@ -75,7 +80,7 @@ export default function HomePage() {
         }
         setCategorizedVideos(videosMap);
       } catch (error) {
-        console.error("Failed to fetch videos:", error);
+        console.error("Failed to fetch videos or categories:", error);
       } finally {
         setIsLoading(false);
       }
@@ -83,8 +88,8 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  if (isLoading && !featuredVideo && categorizedVideos.size === 0) {
-    return <HomePageSkeleton />;
+  if (isLoading && !featuredVideo && categorizedVideos.size === 0 && allCategories.length === 0) {
+    return <HomePageSkeleton predefinedCategories={[{id: 'cat1', name: 'Loading...'}, {id: 'cat2', name: 'Loading...'}]} />;
   }
   
   return (
@@ -121,12 +126,12 @@ export default function HomePage() {
 
       {/* Video Categories Sections */}
       <div className="py-8 md:py-12 space-y-8 md:space-y-12 container mx-auto px-4">
-        {(isLoading && categorizedVideos.size === 0) ? (
-            videoCategories.map(category => <CategoryRowSkeleton key={category.id} categoryName={category.name} />)
+        {(isLoading && categorizedVideos.size === 0 && allCategories.length > 0) ? (
+            allCategories.map(category => <CategoryRowSkeleton key={category.id} categoryName={category.name} />)
         ) : (
             Array.from(categorizedVideos.entries()).map(([categoryId, videos]) => {
-            const category = videoCategories.find(c => c.id === categoryId);
-            if (!category) return null;
+            const category = allCategories.find(c => c.id === categoryId);
+            if (!category || videos.length === 0) return null; // Ensure category exists and has videos
             return (
               <section key={categoryId} aria-labelledby={categoryId}>
                 <h2 id={categoryId} className="text-xl md:text-2xl font-semibold mb-3 md:mb-4">{category.name}</h2>
@@ -140,6 +145,18 @@ export default function HomePage() {
               </section>
             );
           })
+        )}
+         {(!isLoading && categorizedVideos.size === 0 && allCategories.length > 0) && (
+            <div className="text-center py-10">
+                <p className="text-muted-foreground">No videos found for the available categories.</p>
+                {/* Optionally add a link to admin or suggest adding videos */}
+            </div>
+        )}
+        {(!isLoading && allCategories.length === 0) && (
+             <div className="text-center py-10">
+                <h2 className="text-xl font-semibold mb-2">No Categories Available</h2>
+                <p className="text-muted-foreground">Please add some categories in the admin panel to see videos here.</p>
+            </div>
         )}
       </div>
     </div>
@@ -180,13 +197,14 @@ function CategoryRowSkeleton({ categoryName }: { categoryName: string }) {
   );
 }
 
-function HomePageSkeleton() {
+function HomePageSkeleton({ predefinedCategories }: { predefinedCategories: {id: string, name: string}[] }) {
   return (
      <div className="space-y-0">
       <HeroSkeleton />
       <div className="py-8 md:py-12 space-y-8 md:space-y-12 container mx-auto px-4">
-        {videoCategories.slice(0,3).map(category => <CategoryRowSkeleton key={category.id} categoryName={category.name} />)}
+        {predefinedCategories.slice(0,3).map(category => <CategoryRowSkeleton key={category.id} categoryName={category.name} />)}
       </div>
     </div>
   );
 }
+

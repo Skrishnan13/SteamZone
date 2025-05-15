@@ -21,8 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { videoCategories, getVideoById, updateVideo } from "@/data/mock";
-import type { Video } from "@/types";
+import { getCategories, getVideoById, updateVideo } from "@/data/mock";
+import type { Video, VideoCategory } from "@/types";
 import Link from "next/link";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,17 +31,16 @@ const videoEditFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters.").max(100),
   description: z.string().min(10, "Description must be at least 10 characters.").max(500),
   longDescription: z.string().min(20, "Detailed description is too short.").max(5000),
-  genres: z.string().min(3, "Please enter at least one genre."), // comma-separated
-  cast: z.string().min(3, "Please list at least one cast member."), // comma-separated
+  genres: z.string().min(3, "Please enter at least one genre."), 
+  cast: z.string().min(3, "Please list at least one cast member."), 
   director: z.string().min(3, "Director name is required."),
   releaseYear: z.coerce.number().min(1900).max(new Date().getFullYear() + 10),
   duration: z.string().regex(/^\d+[hm]$/, "Duration must be like '90m' or '2h' (e.g. 120m for 2 hours, 1h for 1 hour)."),
   maturityRating: z.string().min(2, "Maturity rating is required (e.g., PG, R, TV-MA)."),
   categories: z.array(z.string()).min(1, "Select at least one category."),
-  thumbnailUrl: z.string().url("Must be a valid URL for thumbnail.").optional().or(z.literal('')), // Optional for edit
-  dataAiHint: z.string().optional(),
+  thumbnailUrl: z.string().url("Must be a valid URL for thumbnail.").optional().or(z.literal('')), 
+  dataAiHint: z.string().max(50, "AI hint should be concise.").optional(),
   isFeatured: z.boolean().default(false).optional(),
-  // Video file itself is not handled in this form, only metadata
 });
 
 type VideoEditFormData = z.infer<typeof videoEditFormSchema>;
@@ -54,10 +53,13 @@ export default function EditVideoPage() {
 
   const [isLoadingVideo, setIsLoadingVideo] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<VideoCategory[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
 
   const form = useForm<VideoEditFormData>({
     resolver: zodResolver(videoEditFormSchema),
-    defaultValues: {
+    defaultValues: { // These will be overridden by fetched video data
       title: "",
       description: "",
       longDescription: "",
@@ -75,41 +77,54 @@ export default function EditVideoPage() {
   });
 
   useEffect(() => {
-    if (videoId) {
+    async function fetchInitialData() {
+      setIsLoadingCategories(true);
       setIsLoadingVideo(true);
-      getVideoById(videoId)
-        .then(videoData => {
-          if (videoData) {
-            form.reset({
-              ...videoData,
-              genres: videoData.genres.join(', '),
-              cast: videoData.cast.join(', '),
-              categories: videoData.categories.map(cat => cat.id),
-            });
-          } else {
-            toast({ title: "Error", description: "Video not found.", variant: "destructive" });
-            router.replace("/admin/manage-videos");
-          }
-        })
-        .catch(err => {
-          console.error("Failed to fetch video for editing:", err);
-          toast({ title: "Error", description: "Could not load video data.", variant: "destructive" });
-        })
-        .finally(() => setIsLoadingVideo(false));
+      try {
+        const [videoData, cats] = await Promise.all([
+          getVideoById(videoId),
+          getCategories()
+        ]);
+
+        setAvailableCategories(cats);
+        setIsLoadingCategories(false);
+
+        if (videoData) {
+          form.reset({
+            ...videoData,
+            genres: videoData.genres.join(', '),
+            cast: videoData.cast.join(', '),
+            categories: videoData.categories.map(cat => cat.id), // map to array of IDs
+          });
+        } else {
+          toast({ title: "Error", description: "Video not found.", variant: "destructive" });
+          router.replace("/admin/manage-videos");
+        }
+      } catch (err) {
+        console.error("Failed to fetch video/categories for editing:", err);
+        toast({ title: "Error", description: "Could not load video or category data.", variant: "destructive" });
+      } finally {
+        setIsLoadingVideo(false); 
+        // setIsLoadingCategories is already set within try/catch
+      }
+    }
+
+    if (videoId) {
+      fetchInitialData();
     }
   }, [videoId, form, router, toast]);
 
   async function onSubmit(data: VideoEditFormData) {
     setIsSubmitting(true);
     try {
-      const updatedVideoData: Partial<Omit<Video, 'id' | 'categories'>> & { categories: string[] } = {
+      const updatedVideoPayload = {
         ...data,
+        // categories are already string[] of IDs from the form
         genres: data.genres.split(',').map(g => g.trim()).filter(g => g),
         cast: data.cast.split(',').map(c => c.trim()).filter(c => c),
-        // categories are already in the correct string[] format from the form
       };
       
-      const result = await updateVideo(videoId, updatedVideoData as any); // Type assertion needed due to how categories are handled
+      const result = await updateVideo(videoId, updatedVideoPayload);
       if (result) {
         toast({
           title: "Video Updated",
@@ -121,13 +136,14 @@ export default function EditVideoPage() {
       }
     } catch (error) {
         console.error("Error updating video:", error);
-        toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+        toast({ title: "Error updating video", description: errorMessage, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
   }
   
-  if (isLoadingVideo) {
+  if (isLoadingVideo || isLoadingCategories) {
      return (
       <div className="container mx-auto px-4 py-8">
         <Skeleton className="h-10 w-48 mb-6" />
@@ -137,12 +153,17 @@ export default function EditVideoPage() {
             <Skeleton className="h-4 w-3/4" />
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            {[...Array(6)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
                 <div key={i} className="space-y-2">
                     <Skeleton className="h-5 w-1/4" />
                     <Skeleton className="h-10 w-full" />
                 </div>
             ))}
+             <div className="space-y-2"> {/* Skeleton for categories */}
+                <Skeleton className="h-5 w-1/4" />
+                <Skeleton className="h-6 w-1/3 mb-2" />
+                <Skeleton className="h-6 w-1/3" />
+            </div>
             <Skeleton className="h-12 w-full mt-4" />
           </CardContent>
         </Card>
@@ -296,7 +317,7 @@ export default function EditVideoPage() {
                   <FormItem>
                     <FormLabel>AI Hint (for Thumbnail search)</FormLabel>
                     <FormControl><Input placeholder="e.g., space galaxy" {...field} /></FormControl>
-                     <FormDescription>Keywords for AI to find similar images if needed.</FormDescription>
+                     <FormDescription>Keywords for AI to find similar images if needed. Max 2 words.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -305,11 +326,12 @@ export default function EditVideoPage() {
               <FormField
                 control={form.control}
                 name="categories"
-                render={() => ( // No `field` needed directly, form.watch or form.getValues used internally
+                render={() => ( 
                   <FormItem>
                     <FormLabel>Categories</FormLabel>
                      <FormDescription>Select one or more categories for this video.</FormDescription>
-                    {videoCategories.map((category) => (
+                     {availableCategories.length === 0 && !isLoadingCategories && <p className="text-sm text-muted-foreground">No categories available. Please add categories in 'Manage Categories' section.</p>}
+                    {availableCategories.map((category) => (
                       <FormField
                         key={category.id}
                         control={form.control}
@@ -371,7 +393,7 @@ export default function EditVideoPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isLoadingVideo}>
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isLoadingVideo || isLoadingCategories}>
                 {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
                 {isSubmitting ? "Saving Changes..." : "Save Changes"}
               </Button>

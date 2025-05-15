@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +46,9 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <CardDescription>Organize your content by adding or editing categories.</CardDescription>
-            <Button variant="outline" className="mt-4 w-full" disabled>Coming Soon</Button>
+            <Button asChild className="mt-4 w-full">
+              <Link href="/admin/manage-categories">Manage Categories</Link>
+            </Button>
           </CardContent>
         </Card>
         
@@ -56,7 +59,9 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <CardDescription>Track views, user engagement, and other metrics.</CardDescription>
-            <Button variant="outline" className="mt-4 w-full" disabled>Coming Soon</Button>
+             <Button asChild className="mt-4 w-full">
+              <Link href="/admin/analytics">View Analytics</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

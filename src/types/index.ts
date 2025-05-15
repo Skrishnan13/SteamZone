@@ -1,3 +1,4 @@
+
 // import type { LucideIcon } from 'lucide-react'; // Not used for now
 
 export type VideoCategory = {
@@ -9,7 +10,7 @@ export type VideoCategory = {
 export type VideoRating = {
   userId: string;
   isLike: boolean; // true for like, false for dislike
-  createdAt: Date;
+  createdAt: string; // ISO date string
 };
 
 export type VideoComment = {
@@ -18,7 +19,7 @@ export type VideoComment = {
   username: string; // For display
   avatarUrl?: string; // For display
   comment: string;
-  createdAt: Date;
+  createdAt: string; // ISO date string
   replies?: VideoComment[];
   likes: number;
 };
@@ -38,9 +39,6 @@ export type Video = {
   maturityRating: string; // e.g., "PG-13", "TV-MA"
   cast: string[];
   director: string;
-  // For interaction, to be implemented later
-  // ratings?: VideoRating[];
-  // comments?: VideoComment[];
   views?: number;
   isFeatured?: boolean; // For hero banner
   tags?: string[];
