@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Video, VideoCategory } from '@/types';
-import { getVideosByCategoryId, getCategories, getFeaturedVideo } from '@/data/mock'; // Updated import
+// Removed imports from '@/data/mock' as they no longer exist: getVideosByCategoryId, getCategories, getFeaturedVideo
 import { VideoCard } from '@/components/VideoCard';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, PlayCircle } from 'lucide-react';
@@ -64,38 +64,32 @@ export default function HomePage() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [featured, fetchedCategories] = await Promise.all([
-            getFeaturedVideo(),
-            getCategories()
-        ]);
-        setFeaturedVideo(featured || null);
-        setAllCategories(fetchedCategories);
+        // Placeholder: In a real app, you would fetch this data from your backend API
+        // For now, we'll set them to empty/null as mock functions are removed.
+        setFeaturedVideo(null);
+        setAllCategories([]);
+        setCategorizedVideos(new Map());
 
-        const videosMap = new Map<string, Video[]>();
-        for (const category of fetchedCategories) {
-          const videos = await getVideosByCategoryId(category.id);
-          if (videos.length > 0) {
-            videosMap.set(category.id, videos);
-          }
-        }
-        setCategorizedVideos(videosMap);
       } catch (error) {
         console.error("Failed to fetch videos or categories:", error);
+        // Handle error state if necessary
       } finally {
-        setIsLoading(false);
+        // Simulate a delay if needed, or set to false directly
+        // For now, setting a small timeout to ensure skeletons are visible initially
+        setTimeout(() => setIsLoading(false), 500);
       }
     }
     fetchData();
   }, []);
 
-  if (isLoading && !featuredVideo && categorizedVideos.size === 0 && allCategories.length === 0) {
+  if (isLoading) { // Show skeleton if still loading
     return <HomePageSkeleton predefinedCategories={[{id: 'cat1', name: 'Loading...'}, {id: 'cat2', name: 'Loading...'}]} />;
   }
   
   return (
     <div className="space-y-0">
       {/* Hero Section */}
-      {isLoading && !featuredVideo ? <HeroSkeleton /> : featuredVideo && (
+      {!featuredVideo ? <HeroSkeleton /> : ( // Show skeleton if featured video is null and not loading
         <div className="relative h-[60vh] md:h-[80vh] w-full text-white">
           <Image
             src={featuredVideo.thumbnailUrl} // Use a higher res image for hero ideally
@@ -126,37 +120,29 @@ export default function HomePage() {
 
       {/* Video Categories Sections */}
       <div className="py-8 md:py-12 space-y-8 md:space-y-12 container mx-auto px-4">
-        {(isLoading && categorizedVideos.size === 0 && allCategories.length > 0) ? (
-            allCategories.map(category => <CategoryRowSkeleton key={category.id} categoryName={category.name} />)
-        ) : (
-            Array.from(categorizedVideos.entries()).map(([categoryId, videos]) => {
-            const category = allCategories.find(c => c.id === categoryId);
-            if (!category || videos.length === 0) return null; // Ensure category exists and has videos
-            return (
-              <section key={categoryId} aria-labelledby={categoryId}>
-                <h2 id={categoryId} className="text-xl md:text-2xl font-semibold mb-3 md:mb-4">{category.name}</h2>
-                <ScrollContainer categoryId={categoryId}>
-                  {videos.map(video => (
-                    <div key={video.id} className="min-w-[200px] sm:min-w-[240px] md:min-w-[280px] flex-shrink-0">
-                      <VideoCard video={video} />
-                    </div>
-                  ))}
-                </ScrollContainer>
-              </section>
-            );
-          })
-        )}
-         {(!isLoading && categorizedVideos.size === 0 && allCategories.length > 0) && (
+        {allCategories.length === 0 && categorizedVideos.size === 0 && !isLoading ? ( // if no categories and no videos and not loading
             <div className="text-center py-10">
-                <p className="text-muted-foreground">No videos found for the available categories.</p>
-                {/* Optionally add a link to admin or suggest adding videos */}
+                <h2 className="text-xl font-semibold mb-2">No Content Available</h2>
+                <p className="text-muted-foreground">Please check back later or add content via the admin panel.</p>
             </div>
-        )}
-        {(!isLoading && allCategories.length === 0) && (
-             <div className="text-center py-10">
-                <h2 className="text-xl font-semibold mb-2">No Categories Available</h2>
-                <p className="text-muted-foreground">Please add some categories in the admin panel to see videos here.</p>
-            </div>
+        ) : (
+            allCategories.map(category => {
+              const videos = categorizedVideos.get(category.id) || [];
+              if (videos.length === 0) return null; // Don't render empty category rows
+
+              return (
+                <section key={category.id} aria-labelledby={category.id}>
+                  <h2 id={category.id} className="text-xl md:text-2xl font-semibold mb-3 md:mb-4">{category.name}</h2>
+                  <ScrollContainer categoryId={category.id}>
+                    {videos.map(video => (
+                      <div key={video.id} className="min-w-[200px] sm:min-w-[240px] md:min-w-[280px] flex-shrink-0">
+                        <VideoCard video={video} />
+                      </div>
+                    ))}
+                  </ScrollContainer>
+                </section>
+              );
+            })
         )}
       </div>
     </div>

@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { getCategories, addVideo } from "@/data/mock"; 
+// Removed: import { getCategories, addVideo } from "@/data/mock"; 
 import type { VideoCategory } from "@/types";
 import Link from "next/link";
 import { ArrowLeft, UploadCloud, Loader2 } from "lucide-react";
@@ -47,7 +47,7 @@ type VideoUploadFormData = z.infer<typeof videoUploadFormSchema>;
 export default function VideoUploadPage() {
   const { toast } = useToast();
   const [availableCategories, setAvailableCategories] = useState<VideoCategory[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true); // Set to true initially
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<VideoUploadFormData>({
@@ -73,11 +73,12 @@ export default function VideoUploadPage() {
     async function fetchInitialData() {
       setIsLoadingCategories(true);
       try {
-        const cats = await getCategories();
-        setAvailableCategories(cats);
+        // const cats = await getCategories(); // Removed call to getCategories
+        // setAvailableCategories(cats); // Categories will be empty for now
+        setAvailableCategories([]); // Set to empty array as backend is not ready
       } catch (error) {
         console.error("Failed to fetch categories for upload form:", error);
-        toast({ title: "Error", description: "Could not load categories for selection.", variant: "destructive"});
+        toast({ title: "Error", description: "Could not load categories for selection (backend not ready).", variant: "destructive"});
       } finally {
         setIsLoadingCategories(false);
       }
@@ -88,22 +89,26 @@ export default function VideoUploadPage() {
   async function onSubmit(data: VideoUploadFormData) {
     setIsSubmitting(true);
     try {
-      const videoPayload = {
-        ...data,
-        // categories are already string[] of IDs as required by addVideo mock
-        genres: data.genres.split(',').map(g => g.trim()).filter(g => g),
-        cast: data.cast.split(',').map(c => c.trim()).filter(c => c),
-      };
-      const newVideo = await addVideo(videoPayload);
+      // const videoPayload = {
+      //   ...data,
+      //   genres: data.genres.split(',').map(g => g.trim()).filter(g => g),
+      //   cast: data.cast.split(',').map(c => c.trim()).filter(c => c),
+      // };
+      // const newVideo = await addVideo(videoPayload); // Removed call to addVideo
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      console.log("Form submitted (no backend call):", data);
       toast({
-        title: "Video Uploaded Successfully",
-        description: `"${newVideo.title}" has been added to the catalog.`,
+        title: "Video Upload Submitted (Mock)",
+        description: `"${data.title}" details received. Backend integration needed.`,
       });
       form.reset(); 
     } catch (error) {
-        console.error("Error uploading video:", error);
+        console.error("Error submitting video form (mock):", error);
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
-        toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
+        toast({ title: "Submission Failed (Mock)", description: errorMessage, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
@@ -119,7 +124,7 @@ export default function VideoUploadPage() {
             <Skeleton className="h-4 w-3/4" />
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            {[...Array(8)].map((_, i) => ( // Increased skeleton items
+            {[...Array(8)].map((_, i) => ( 
                 <div key={i} className="space-y-2">
                     <Skeleton className="h-5 w-1/4" />
                     <Skeleton className="h-10 w-full" />
@@ -149,7 +154,7 @@ export default function VideoUploadPage() {
             <UploadCloud className="h-7 w-7 text-primary" /> Upload New Video
           </CardTitle>
           <CardDescription>
-            Fill in the details below to add a new video to the platform.
+            Fill in the details below to add a new video to the platform. (Backend integration pending)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -295,8 +300,8 @@ export default function VideoUploadPage() {
                 render={() => ( 
                   <FormItem>
                     <FormLabel>Categories</FormLabel>
-                     <FormDescription>Select one or more categories for this video.</FormDescription>
-                     {availableCategories.length === 0 && !isLoadingCategories && <p className="text-sm text-muted-foreground">No categories available. Please add categories in 'Manage Categories' section.</p>}
+                     <FormDescription>Select one or more categories for this video. (Categories will be loaded once backend is connected)</FormDescription>
+                     {availableCategories.length === 0 && !isLoadingCategories && <p className="text-sm text-muted-foreground">No categories available. Add categories in 'Manage Categories' or connect to backend.</p>}
                     {availableCategories.map((category) => (
                       <FormField
                         key={category.id}
@@ -374,7 +379,7 @@ export default function VideoUploadPage() {
 
               <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isLoadingCategories}>
                  {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <UploadCloud className="mr-2 h-5 w-5" />}
-                {isSubmitting ? "Uploading Video..." : "Upload Video"}
+                {isSubmitting ? "Submitting Video..." : "Submit Video Details"}
               </Button>
             </form>
           </Form>
@@ -383,3 +388,4 @@ export default function VideoUploadPage() {
     </div>
   );
 }
+
