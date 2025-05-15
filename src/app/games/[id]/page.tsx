@@ -1,18 +1,31 @@
+
 "use client"; // This page needs client interactivity for rating submission
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useParams, notFound } from 'next/navigation';
 import type { Game, Rating as RatingType } from '@/types';
-import { getGameById, addRatingToGame, categories as allCategories } from '@/data/mock';
+import { getGameById, addRatingToGame } from '@/data/mock';
 import { RatingStars } from '@/components/RatingStars';
 import { GameRatingForm } from '@/components/game/GameRatingForm';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CalendarDays, Users, Tag, Info, ListChecks, Star, MessageSquare } from 'lucide-react';
+import { AlertCircle, CalendarDays, Users, Tag, Info, ListChecks, Star, MessageSquare, Play } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function GameDetailsPage() {
   const params = useParams();
@@ -54,8 +67,6 @@ export default function GameDetailsPage() {
   }
 
   if (!game) {
-    // This case should ideally be handled by notFound() in useEffect,
-    // but as a fallback:
     return (
       <div className="text-center py-10">
         <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
@@ -99,7 +110,7 @@ export default function GameDetailsPage() {
             </div>
           </div>
           <p className="text-lg text-foreground mb-6">{game.longDescription || game.description}</p>
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-3">
             <RatingStars rating={game.averageRating} size={24} />
             <span className="text-xl font-semibold text-foreground">
               {game.averageRating > 0 ? game.averageRating.toFixed(1) : 'N/A'}
@@ -111,6 +122,28 @@ export default function GameDetailsPage() {
               <Badge key={platform} variant="secondary">{platform}</Badge>
             ))}
           </div>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="lg" className="w-full sm:w-auto">
+                <Play className="mr-2 h-5 w-5" /> Play Game
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Gameplay Feature</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This game is not directly playable within Game Zone at the moment. 
+                  This app currently serves as a directory for game information and ratings.
+                  We are considering adding direct play features in the future!
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction>Got it!</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
         </div>
       </div>
 
@@ -194,6 +227,7 @@ function GameDetailsSkeleton() {
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-8 w-1/3" />
           <Skeleton className="h-10 w-1/2" />
+          <Skeleton className="h-12 w-1/3 mt-2" />
         </div>
       </div>
       <div className="grid md:grid-cols-3 gap-8">
@@ -221,4 +255,3 @@ function GameDetailsSkeleton() {
     </div>
   );
 }
-
