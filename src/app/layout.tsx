@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Game Zone',
-  description: 'Your ultimate destination for games and recommendations.',
+  title: 'StreamZone',
+  description: 'Your ultimate hub for movies and TV shows.',
 };
 
 export default function RootLayout({
@@ -29,11 +29,11 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning={true}>
       <body className={cn(geistSans.variable, geistMono.variable, "antialiased min-h-screen flex flex-col")}>
         <Navbar />
-        <main className="flex-grow container mx-auto px-4 py-8">
+        <main className="flex-grow"> {/* Container removed to allow full-width hero sections like Netflix */}
           {children}
         </main>
-        <footer className="py-6 text-center text-muted-foreground border-t">
-          © {new Date().getFullYear()} Game Zone. All rights reserved.
+        <footer className="py-6 text-center text-xs text-muted-foreground border-t border-border/50">
+          © {new Date().getFullYear()} StreamZone. All rights reserved.
         </footer>
         <Toaster />
       </body>
