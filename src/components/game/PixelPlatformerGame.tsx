@@ -7,8 +7,7 @@ const CANVAS_WIDTH = 600;
 const CANVAS_HEIGHT = 400;
 const PLAYER_WIDTH = 30;
 const PLAYER_HEIGHT = 50;
-const PLAYER_COLOR = 'hsl(var(--primary))';
-const PLATFORM_COLOR = 'hsl(var(--secondary))';
+// PLAYER_COLOR, PLATFORM_COLOR, and background color will be resolved from CSS variables
 const GRAVITY = 0.6;
 const JUMP_STRENGTH = -12;
 const PLAYER_SPEED = 5;
@@ -42,6 +41,26 @@ const PixelPlatformerGame: React.FC = () => {
 
   const keysPressedRef = useRef<{ [key: string]: boolean }>({});
 
+  const resolvedColorsRef = useRef({
+    background: 'hsl(224 71% 4%)', // Fallback, should match globals.css
+    player: 'hsl(233 64% 50%)',    // Fallback
+    platform: 'hsl(215 28% 17%)', // Fallback
+  });
+
+  useEffect(() => {
+    // Fetch actual CSS variable values on mount
+    if (typeof window !== 'undefined') {
+      const styles = getComputedStyle(document.documentElement);
+      const bgHslValue = styles.getPropertyValue('--background').trim();
+      const playerHslValue = styles.getPropertyValue('--primary').trim();
+      const platformHslValue = styles.getPropertyValue('--secondary').trim();
+
+      if (bgHslValue) resolvedColorsRef.current.background = `hsl(${bgHslValue})`;
+      if (playerHslValue) resolvedColorsRef.current.player = `hsl(${playerHslValue})`;
+      if (platformHslValue) resolvedColorsRef.current.platform = `hsl(${platformHslValue})`;
+    }
+  }, []);
+
   const gameLoop = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -50,9 +69,9 @@ const PixelPlatformerGame: React.FC = () => {
 
     if (!canvas || !ctx) return;
 
-    // Clear canvas
+    // Clear canvas and fill with background color
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    ctx.fillStyle = 'hsl(var(--background))';
+    ctx.fillStyle = resolvedColorsRef.current.background;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 
@@ -119,17 +138,17 @@ const PixelPlatformerGame: React.FC = () => {
     }
     
     // Draw player
-    ctx.fillStyle = PLAYER_COLOR;
+    ctx.fillStyle = resolvedColorsRef.current.player;
     ctx.fillRect(player.x, player.y, player.width, player.height);
 
     // Draw platforms
-    ctx.fillStyle = PLATFORM_COLOR;
-    platforms.forEach(platform => {
-      ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    ctx.fillStyle = resolvedColorsRef.current.platform;
+    platforms.forEach(p => { // Renamed platform to p to avoid conflict with resolvedColorsRef.current.platform
+      ctx.fillRect(p.x, p.y, p.width, p.height);
     });
 
     requestAnimationFrame(gameLoop);
-  }, []);
+  }, []); // Empty dependency array for useCallback is okay as it reads from refs
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -148,14 +167,16 @@ const PixelPlatformerGame: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    const animationFrameId = requestAnimationFrame(gameLoop);
+    // Ensure gameLoop reference is stable for requestAnimationFrame
+    const currentLoop = gameLoop;
+    const animationFrameId = requestAnimationFrame(currentLoop);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [gameLoop]);
+  }, [gameLoop]); // Rerun if gameLoop reference changes (it shouldn't with useCallback an empty dep array)
 
   return (
     <div className="flex justify-center items-center p-4 bg-card-foreground/5 rounded-md">
