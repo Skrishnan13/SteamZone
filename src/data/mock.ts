@@ -1,3 +1,4 @@
+
 import type { Game, Category, Rating } from '@/types';
 import { Gamepad2, MountainSnow, Swords, Puzzle, Brain, SquareTerminal, Trophy, Lightbulb, MoveUpRight } from 'lucide-react';
 
@@ -24,8 +25,8 @@ const initialGames: Game[] = [
     category: categories.find(c => c.id === 'action')!,
     instructions: 'Use arrow keys to move, spacebar to jump. Collect power-ups to enhance abilities. Complete missions to progress.',
     ratings: [
-      { userId: 'user1', rating: 5, comment: 'Amazing game!', createdAt: new Date() },
-      { userId: 'user2', rating: 4, createdAt: new Date() },
+      { userId: 'user1', rating: 5, comment: 'Amazing game!', createdAt: new Date('2024-01-01T10:00:00Z') },
+      { userId: 'user2', rating: 4, createdAt: new Date('2024-01-02T12:00:00Z') },
     ],
     averageRating: 4.5,
     releaseDate: '2023-05-15',
@@ -43,7 +44,7 @@ const initialGames: Game[] = [
     category: categories.find(c => c.id === 'adventure')!,
     instructions: 'WASD to move, E to interact, Left-click to attack. Follow the main questline or explore hidden areas.',
     ratings: [
-      { userId: 'user3', rating: 4, comment: 'Beautiful world.', createdAt: new Date() },
+      { userId: 'user3', rating: 4, comment: 'Beautiful world.', createdAt: new Date('2023-12-15T14:30:00Z') },
     ],
     averageRating: 4,
     releaseDate: '2022-11-01',
@@ -61,9 +62,9 @@ const initialGames: Game[] = [
     category: categories.find(c => c.id === 'strategy')!,
     instructions: 'Mouse to select units and issue commands. Manage resources and build structures. Complete campaign missions or play multiplayer.',
     ratings: [
-      { userId: 'user4', rating: 5, comment: 'Deep strategy, love it!', createdAt: new Date() },
-      { userId: 'user5', rating: 5, createdAt: new Date() },
-      { userId: 'user6', rating: 4, createdAt: new Date() },
+      { userId: 'user4', rating: 5, comment: 'Deep strategy, love it!', createdAt: new Date('2024-02-01T09:00:00Z') },
+      { userId: 'user5', rating: 5, createdAt: new Date('2024-02-05T11:00:00Z') },
+      { userId: 'user6', rating: 4, createdAt: new Date('2024-02-10T16:00:00Z') },
     ],
     averageRating: 4.67,
     releaseDate: '2024-01-20',
@@ -81,8 +82,8 @@ const initialGames: Game[] = [
     category: categories.find(c => c.id === 'puzzle')!,
     instructions: 'Click and drag to manipulate puzzle elements. Find hidden mechanisms and solve sequences to open the box.',
     ratings: [
-      { userId: 'user7', rating: 3, comment: 'Some puzzles are too hard.', createdAt: new Date() },
-      { userId: 'user8', rating: 4, createdAt: new Date() },
+      { userId: 'user7', rating: 3, comment: 'Some puzzles are too hard.', createdAt: new Date('2023-10-01T10:00:00Z') },
+      { userId: 'user8', rating: 4, createdAt: new Date('2023-10-05T13:00:00Z') },
     ],
     averageRating: 3.5,
     releaseDate: '2023-09-10',
@@ -116,7 +117,7 @@ const initialGames: Game[] = [
     category: categories.find(c => c.id === 'simulation')!,
     instructions: 'Mouse controls for farming actions. Manage time and resources effectively. Complete daily tasks and seasonal events.',
     ratings: [
-       { userId: 'user9', rating: 5, comment: 'So relaxing!', createdAt: new Date() }
+       { userId: 'user9', rating: 5, comment: 'So relaxing!', createdAt: new Date('2023-08-01T18:00:00Z') }
     ],
     averageRating: 5,
     releaseDate: '2023-07-22',
@@ -126,34 +127,61 @@ const initialGames: Game[] = [
   },
 ];
 
-// In a real app, this would be a database. For now, we manage it in memory.
-let gamesStore: Game[] = JSON.parse(JSON.stringify(initialGames)); // Deep copy to allow modification
+// Helper for deep copying game objects while preserving functions (icons) and Date objects.
+// This is a simplified deep copy tailored for the Game structure.
+const deepCopyGame = (game: Game): Game => {
+  return {
+    ...game,
+    // Shallow copy category; the icon property is a direct reference to the function component.
+    category: { ...game.category }, 
+    // Deep copy ratings array and ensure createdAt is a Date object.
+    ratings: game.ratings.map(r => ({ ...r, createdAt: new Date(r.createdAt) })),
+    // Deep copy platforms array.
+    platforms: [...game.platforms],
+  };
+};
+
+// Initialize gamesStore with deep copies of initialGames to preserve functions and allow mutation.
+let gamesStore: Game[] = initialGames.map(deepCopyGame);
 
 export const getGames = async (): Promise<Game[]> => {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 200));
-  return JSON.parse(JSON.stringify(gamesStore)); // Return a copy
+  // Return deep copies of the games from the store to prevent consumer mutation of the store's objects.
+  return gamesStore.map(deepCopyGame);
 };
 
 export const getGameById = async (id: string): Promise<Game | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 100));
   const game = gamesStore.find(g => g.id === id);
-  return game ? JSON.parse(JSON.stringify(game)) : undefined;
+  // Return a deep copy if found.
+  return game ? deepCopyGame(game) : undefined;
 };
 
 export const addRatingToGame = async (gameId: string, rating: Rating): Promise<Game | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 100));
   const gameIndex = gamesStore.findIndex(g => g.id === gameId);
   if (gameIndex !== -1) {
-    gamesStore[gameIndex].ratings.push(rating);
-    const totalRating = gamesStore[gameIndex].ratings.reduce((sum, r) => sum + r.rating, 0);
-    gamesStore[gameIndex].averageRating = parseFloat((totalRating / gamesStore[gameIndex].ratings.length).toFixed(2));
-    return JSON.parse(JSON.stringify(gamesStore[gameIndex]));
+    const gameToUpdate = gamesStore[gameIndex];
+    
+    // Ensure the new rating's createdAt is a Date object.
+    const newRating: Rating = {
+        ...rating,
+        createdAt: new Date(rating.createdAt), 
+    };
+
+    // Update ratings by creating a new array.
+    gameToUpdate.ratings = [...gameToUpdate.ratings, newRating];
+    
+    const totalRating = gameToUpdate.ratings.reduce((sum, r) => sum + r.rating, 0);
+    gameToUpdate.averageRating = parseFloat((totalRating / gameToUpdate.ratings.length).toFixed(2));
+    
+    // Return a deep copy of the updated game.
+    return deepCopyGame(gameToUpdate);
   }
   return undefined;
 };
 
-// Function to get user rating history string for AI
 export const getUserRatingHistoryString = async (userId: string): Promise<string> => {
   // This is a simplified version. In a real app, you'd query user-specific ratings.
   // For now, let's pick a few games and assign some ratings for a mock user.
