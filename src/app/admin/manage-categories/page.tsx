@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import type { VideoCategory } from '@/types';
-import { getCategories, addCategory, updateCategory, deleteCategory } from '@/data/mock';
+// Removed: import { getCategories, addCategory, updateCategory, deleteCategory } from '@/data/mock';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,6 +55,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 
 const categoryFormSchema = z.object({
+  id: z.string().optional(), // Keep id for editing simulation
   name: z.string().min(2, "Category name must be at least 2 characters.").max(50),
   description: z.string().max(200, "Description can be up to 200 characters.").optional(),
 });
@@ -78,11 +79,16 @@ export default function ManageCategoriesPage() {
   const fetchCategoriesData = async () => {
     setIsLoading(true);
     try {
-      const fetchedCategories = await getCategories();
-      setCategories(fetchedCategories);
+      // const fetchedCategories = await getCategories(); // Backend call will replace this
+      setCategories([]); // Set to empty as backend is not ready
+       toast({
+        title: "Backend Pending",
+        description: "Category list will populate once backend is connected.",
+        variant: "default"
+      });
     } catch (error) {
-      console.error("Failed to fetch categories:", error);
-      toast({ title: "Error", description: "Could not load categories.", variant: "destructive" });
+      console.error("Failed to fetch categories (backend pending):", error);
+      toast({ title: "Error", description: "Could not load categories. Ensure backend is running.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -90,12 +96,12 @@ export default function ManageCategoriesPage() {
 
   useEffect(() => {
     fetchCategoriesData();
-  }, [toast]); // No need for toast in dep array here, fetchCategoriesData has it.
+  }, []); 
 
   const handleOpenFormDialog = (category?: VideoCategory) => {
     if (category) {
       setEditingCategory(category);
-      form.reset({ name: category.name, description: category.description || "" });
+      form.reset({ id: category.id, name: category.name, description: category.description || "" });
     } else {
       setEditingCategory(null);
       form.reset({ name: "", description: "" });
@@ -105,33 +111,44 @@ export default function ManageCategoriesPage() {
 
   const handleFormSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
     try {
       if (editingCategory) {
-        await updateCategory(editingCategory.id, data);
-        toast({ title: "Category Updated", description: `"${data.name}" has been updated.` });
+        // await updateCategory(editingCategory.id, data); // Backend call
+        // Simulate update in local state for demo purposes
+        setCategories(prev => prev.map(cat => cat.id === editingCategory.id ? {...cat, ...data, id: cat.id } : cat));
+        toast({ title: "Category Updated (Mock)", description: `"${data.name}" has been updated. Backend integration needed.` });
       } else {
-        await addCategory(data);
-        toast({ title: "Category Added", description: `"${data.name}" has been added.` });
+        // await addCategory(data); // Backend call
+        // Simulate add in local state for demo purposes
+        const newCategory = { ...data, id: `mock-${Date.now().toString()}` };
+        setCategories(prev => [newCategory, ...prev]);
+        toast({ title: "Category Added (Mock)", description: `"${data.name}" has been added. Backend integration needed.` });
       }
       setShowFormDialog(false);
-      fetchCategoriesData(); // Re-fetch to show updated list
+      // fetchCategoriesData(); // No need to re-fetch if local state is updated, or re-fetch when backend is real
     } catch (error) {
-      console.error("Failed to save category:", error);
-      toast({ title: "Error", description: "Could not save category.", variant: "destructive" });
+      console.error("Failed to save category (mock):", error);
+      toast({ title: "Error (Mock)", description: "Could not save category.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    setIsSubmitting(true); // Use isSubmitting to disable delete confirm button during operation
+    setIsSubmitting(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
     try {
-      await deleteCategory(categoryId);
-      toast({ title: "Category Deleted", description: `"${categoryName}" has been removed.` });
-      fetchCategoriesData(); // Re-fetch
+      // await deleteCategory(categoryId); // Backend call
+      // Simulate delete in local state
+      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+      toast({ title: "Category Deleted (Mock)", description: `"${categoryName}" has been removed. Backend integration needed.` });
+      // fetchCategoriesData(); // No need to re-fetch if local state is updated
     } catch (error) {
-      console.error("Failed to delete category:", error);
-      toast({ title: "Error", description: "Could not delete category.", variant: "destructive" });
+      console.error("Failed to delete category (mock):", error);
+      toast({ title: "Error (Mock)", description: "Could not delete category.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -226,7 +243,7 @@ export default function ManageCategoriesPage() {
           <CardTitle className="flex items-center gap-2">
             <ListChecks className="h-6 w-6 text-primary" /> Manage Categories
           </CardTitle>
-          <CardDescription>View, add, edit, or delete video categories.</CardDescription>
+          <CardDescription>View, add, edit, or delete video categories. (Backend integration pending)</CardDescription>
         </CardHeader>
         <CardContent>
           {categories.length === 0 && !isLoading ? (
@@ -234,7 +251,7 @@ export default function ManageCategoriesPage() {
               <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-2 text-lg font-medium">No Categories Found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Get started by adding a new category.
+                Get started by adding a new category or connect to a backend.
               </p>
               <Button onClick={() => handleOpenFormDialog()} className="mt-4">
                  <PlusCircle className="mr-2 h-4 w-4" />Add Category
@@ -271,7 +288,7 @@ export default function ManageCategoriesPage() {
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
                               This action cannot be undone. This will permanently delete the
-                              category "{category.name}". Videos associated with this category will no longer be linked to it.
+                              category "{category.name}" (mock deletion).
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -298,3 +315,4 @@ export default function ManageCategoriesPage() {
     </div>
   );
 }
+
