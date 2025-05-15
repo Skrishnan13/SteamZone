@@ -1,5 +1,5 @@
 
-"use client"; // This page needs client interactivity for rating submission
+"use client"; 
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -8,10 +8,11 @@ import type { Game, Rating as RatingType } from '@/types';
 import { getGameById, addRatingToGame } from '@/data/mock';
 import { RatingStars } from '@/components/RatingStars';
 import { GameRatingForm } from '@/components/game/GameRatingForm';
+import PixelPlatformerGame from '@/components/game/PixelPlatformerGame'; // Import the new game component
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CalendarDays, Users, Tag, Info, ListChecks, Star, MessageSquare, Play } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AlertCircle, CalendarDays, Users, Tag, Info, ListChecks, Star, MessageSquare, Play, EyeOff } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -32,21 +33,23 @@ export default function GameDetailsPage() {
   const gameId = params.id as string;
   const [game, setGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showGameCanvas, setShowGameCanvas] = useState(false); // State for showing the playable game
 
   useEffect(() => {
     if (gameId) {
       setIsLoading(true);
+      setShowGameCanvas(false); // Reset canvas visibility on game change
       getGameById(gameId)
         .then(data => {
           if (data) {
             setGame(data);
           } else {
-            notFound(); // Or set an error state
+            notFound(); 
           }
         })
         .catch(err => {
           console.error("Failed to fetch game details:", err);
-          notFound(); // Or set an error state
+          notFound(); 
         })
         .finally(() => {
           setIsLoading(false);
@@ -77,6 +80,7 @@ export default function GameDetailsPage() {
   }
   
   const CategoryIcon = game.category.icon || Tag;
+  const isPlayablePixelPlatformer = game.id === 'pixel-platformer-pro';
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -123,29 +127,54 @@ export default function GameDetailsPage() {
             ))}
           </div>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button size="lg" className="w-full sm:w-auto">
-                <Play className="mr-2 h-5 w-5" /> Play Game
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Gameplay Feature</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This game is not directly playable within Game Zone at the moment. 
-                  This app currently serves as a directory for game information and ratings.
-                  We are considering adding direct play features in the future!
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogAction>Got it!</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
+          {isPlayablePixelPlatformer ? (
+            <Button 
+              size="lg" 
+              className="w-full sm:w-auto" 
+              onClick={() => setShowGameCanvas(!showGameCanvas)}
+            >
+              {showGameCanvas ? <EyeOff className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
+              {showGameCanvas ? 'Hide Game' : 'Play Game'}
+            </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="lg" className="w-full sm:w-auto">
+                  <Play className="mr-2 h-5 w-5" /> Play Game
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Gameplay Feature</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This game is not directly playable within Game Zone at the moment. 
+                    This app currently serves as a directory for game information and ratings.
+                    We are considering adding direct play features in the future!
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogAction>Got it!</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
+
+      {isPlayablePixelPlatformer && showGameCanvas && (
+        <Card className="mb-8 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Play className="text-accent h-6 w-6" />
+              Playing: {game.title}
+            </CardTitle>
+            <CardDescription>Use Arrow Keys: Left/Right to move, Up to Jump. Try to navigate the platforms!</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PixelPlatformerGame />
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">
@@ -155,6 +184,7 @@ export default function GameDetailsPage() {
             </CardHeader>
             <CardContent>
               <p className="whitespace-pre-line text-foreground/90">{game.instructions}</p>
+              {isPlayablePixelPlatformer && <p className="mt-2 text-sm text-accent-foreground/80">For the interactive version above: Use Arrow Left/Right to move, Arrow Up to jump.</p>}
             </CardContent>
           </Card>
           
@@ -166,7 +196,7 @@ export default function GameDetailsPage() {
                 <CardTitle className="flex items-center gap-2"><Star className="text-accent"/> User Reviews</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {game.ratings.slice(0, 5).map((r, index) => ( // Show latest 5 reviews
+                {game.ratings.slice(0, 5).map((r, index) => ( 
                   <div key={index} className="p-4 border rounded-lg bg-muted/20">
                     <div className="flex justify-between items-center mb-2">
                       <RatingStars rating={r.rating} size={18} />
@@ -205,7 +235,6 @@ export default function GameDetailsPage() {
               </div>
             </CardContent>
           </Card>
-          {/* Placeholder for similar games or ads */}
         </div>
       </div>
     </div>
