@@ -48,10 +48,12 @@ export default function AnalyticsPage() {
   const [totalVideos, setTotalVideos] = useState(0);
   const [totalCategories, setTotalCategories] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [mockTotalViews, setMockTotalViews] = useState(0);
+  const [mockActiveUsers, setMockActiveUsers] = useState(0);
 
   useEffect(() => {
     async function fetchDataCounts() {
-      setIsLoading(true);
+      setIsLoading(true); // Keep this if you want to show loading for these counts specifically
       try {
         const [videos, categories] = await Promise.all([
           getVideos(),
@@ -63,11 +65,18 @@ export default function AnalyticsPage() {
         console.error("Failed to fetch data counts for analytics:", error);
         // Handle error if needed, e.g., show a toast
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Set loading to false after all data is fetched
       }
     }
     fetchDataCounts();
   }, []);
+
+  useEffect(() => {
+    // This useEffect can run independently or be part of the main one
+    // if its data relies on the main fetch. For pure mock data, it's fine separately.
+    setMockTotalViews(Math.floor(Math.random() * 50000) + 10000);
+    setMockActiveUsers(Math.floor(Math.random() * 2000) + 500);
+  },[]); // Runs once on mount
 
 
   if (isLoading) {
@@ -85,15 +94,6 @@ export default function AnalyticsPage() {
     );
   }
   
-  // Random number for mock views
-  const [mockTotalViews, setMockTotalViews] = useState(0);
-  const [mockActiveUsers, setMockActiveUsers] = useState(0);
-  useEffect(() => {
-      setMockTotalViews(Math.floor(Math.random() * 50000) + 10000);
-      setMockActiveUsers(Math.floor(Math.random() * 2000) + 500);
-  },[]);
-
-
   return (
     <div className="container mx-auto px-4 py-8">
       <Button variant="outline" asChild className="mb-6 gap-2">
@@ -251,3 +251,4 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
