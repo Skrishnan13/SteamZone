@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Video, ListChecks, BarChart3 } from 'lucide-react';
+import { PlusCircle, Video, ListChecks, BarChart3, Edit } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   return (
@@ -28,11 +28,13 @@ export default function AdminDashboardPage() {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-lg font-medium">Manage Videos</CardTitle>
-            <Video className="h-6 w-6 text-accent" />
+            <Edit className="h-6 w-6 text-accent" />
           </CardHeader>
           <CardContent>
             <CardDescription>Edit or remove existing video content.</CardDescription>
-            <Button variant="outline" className="mt-4 w-full" disabled>Coming Soon</Button>
+            <Button asChild className="mt-4 w-full">
+              <Link href="/admin/manage-videos">Manage Videos</Link>
+            </Button>
           </CardContent>
         </Card>
 
